@@ -4,57 +4,66 @@ let ctx;
 let wallX;
 let wallY;
 
-class Ball{
-    constructor(){
-        this.rx = this.getRandom(0,wallX);
-        this.ry = this.getRandom(0,wallY);
-        let theta = this.getRandom(0,2*Math.PI);
-        this.vx = 500*Math.cos(theta);
-        this.vy = 500*Math.sin(theta);
-        this.r = 10;
-    }
 
-    getRandom(min,max){
-        return min + Math.random()*(max-min);
-    }
+let t = 0;
+let balls =[];
+let queue = new PriorityQueue((a, b) => a[0] < b[0]);
+let n = 10;
+const HZ = 60;
+const T = 1000;
 
-    move(deltaT){
-        const newX = this.rx + this.vx*deltaT;
-        const newY = this.ry + this.vy*deltaT;
-        if(newX<this.r||newX>wallX-this.r){ this.vx = -this.vx; }
-        if(newY<this.r||newY>wallY-this.r){ this.vy = -this.vy; }
-        this.rx = newX;
-        this.ry = newY;
-    }
-
-    draw(){
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.arc(this.rx,this.ry,this.r,0,2*Math.PI);
-        ctx.fillStyle = 'black';
-        ctx.fill();
-        ctx.stroke();
-    }
-
+const predictX = (a) => {
+    if(a===null) return;
+    const th = a.timeToHitHWall();
+    if(t+th<T) queue.push([t+th,a,null]);
 }
-let curr;
-let ball;
-const simulate = (timestamp) => {
-    if(curr==undefined) curr = timestamp;
-    const deltaT = (timestamp - curr)/1000;
-    curr = timestamp;
-    ball.move(deltaT);
-    ball.draw();
-    window.requestAnimationFrame(simulate);
+
+const predictY = (a) => {
+    if(a===null) return;
+    const tv = a.timeToHitVWall();
+    if(t+tv<T) queue.push([t+tv,null,a]);
+}
+
+const redraw = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    balls.forEach((ball)=>{
+        ball.draw();
+    });
+    queue.push([t+1/HZ,null,null]);
+}
+
+const simulate = async () => {
+    balls.forEach((ball)=>{
+        predictX(ball);
+        predictY(ball);
+    });
+    queue.push([0,null,null]);
+    while(!queue.isEmpty()){
+        const topEvent = queue.pop();
+        const timeToHit = topEvent[0];
+        const ball1 = topEvent[1];
+        const ball2 = topEvent[2];
+        const deltaT = timeToHit - t;
+        balls.forEach((ball)=>{
+            ball.move(deltaT);
+        });
+        await new Promise((resolve)=>setTimeout(resolve,deltaT));
+        if(ball1===null&&ball2===null) redraw();
+        if(ball1!=null&&ball2===null) {ball1.bounceOffHWall(); predictX(ball1);}
+        if(ball2!=null&&ball1===null) {ball2.bounceOffVWall(); predictY(ball2);}
+        t = timeToHit;
+    }
 }
 
 window.onload = () => {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
     resizeCanvas();
-    ball = new Ball();
+    for(let i=0;i<n;i+=1){
+        balls.push(new Ball());
+    }
     canvas.style.display = 'block';
-    window.requestAnimationFrame(simulate);
+    simulate();
 }
 
 window.addEventListener('resize', resizeCanvas, false);
@@ -63,4 +72,11 @@ window.addEventListener('resize', resizeCanvas, false);
         wallY = window.innerHeight;
         canvas.height = wallY;
         canvas.width = wallX;
+        while(!queue.isEmpty()){
+            queue.pop();
+        }
+        balls.forEach((ball)=>{
+            predictX(ball);
+            predictY(ball);
+        });
     }
