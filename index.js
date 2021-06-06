@@ -8,7 +8,7 @@ let wallY;
 let t = 0;
 let balls =[];
 let queue = new PriorityQueue((a, b) => a.t < b.t);
-let n = 10;
+let n = 15;
 const HZ = 60;
 const T = 1000;
 

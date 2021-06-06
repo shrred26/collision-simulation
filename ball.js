@@ -3,10 +3,10 @@ class Ball{
         this.rx = this.getRandom(0,wallX);
         this.ry = this.getRandom(0,wallY);
         let theta = this.getRandom(0,2*Math.PI);
-        this.vx = 300*Math.cos(theta);
-        this.vy = 300*Math.sin(theta);
+        this.vx = 500*Math.cos(theta);
+        this.vy = 500*Math.sin(theta);
         this.r = 20;
-        this.mass = 0.2;
+        this.mass = 1.2;
         this.count = 0;
         this.color = `rgb(${this.getRandom(0,200)},${this.getRandom(0,200)},${this.getRandom(0,200)})`;
     }
@@ -59,9 +59,8 @@ class Ball{
         const vyRel = ball.vy - this.vy;
         const xRel = ball.rx - this.rx;
         const yRel = ball.ry - this.ry;
-        const dvdr = xRel*vxRel + yRel*vyRel;   
-        console.log(xRel*xRel+yRel*yRel);     // dv dot dr
-        const dist = 40;   // distance between particle centers at collison
+        const dvdr = xRel*vxRel + yRel*vyRel;    // dv dot dr
+        const dist = 2*this.r;   // distance between particle centers at collison
 
         // magnitude of normal force
         const magnitude = dvdr /  dist;
@@ -71,10 +70,10 @@ class Ball{
         const fy = magnitude * yRel / dist;
 
         // update velocities according to normal force
-        this.vx += fx;
-        this.vy += fy;
-        ball.vx -= fx;
-        ball.vy -= fy;
+        this.vx += fx/this.mass;
+        this.vy += fy/this.mass;
+        ball.vx -= fx/ball.mass;
+        ball.vy -= fy/ball.mass;
         this.count++;
         ball.count++;
     }
